@@ -305,7 +305,7 @@ class TransposedVGG13(nn.Module):
             ('conv8', TransposedConv(VGG13.model1.conv8)),
             ('bn7', TransposedBatchNorm(VGG13.model1.bn7, num_features=512)),
             ('relu7', nn.ReLU(inplace=True)),
-
+            ('dropout', nn.Dropout(0.2)),
             ('conv7', TransposedConv(VGG13.model1.conv7)),
             ('bn6', TransposedBatchNorm(VGG13.model1.bn6, num_features=256)),
             ('relu6', nn.ReLU(inplace=True)),
@@ -322,7 +322,7 @@ class TransposedVGG13(nn.Module):
             ('conv4', TransposedConv(VGG13.model1.conv4)),  # [10,512,4,4]
             ('bn3', TransposedBatchNorm(VGG13.model1.bn3, num_features=128)),
             ('relu3', nn.ReLU(inplace=True)),
-
+            ('dropout', nn.Dropout(0.2)),
             ('conv3', TransposedConv(VGG13.model1.conv3)),
             ('bn2', TransposedBatchNorm(VGG13.model1.bn2, num_features=64)),
             ('relu2', nn.ReLU(inplace=True)),
@@ -339,7 +339,8 @@ class TransposedVGG13(nn.Module):
             ('relu', nn.ReLU(inplace=True)),
             ('fc2', TransposedLinear(VGG13.model2.fc2, 128, 1028)),  # 2304 * 2
             ('relu', nn.ReLU(inplace=True)),
-            ('fc1', TransposedLinear(VGG13.model2.fc1, 1028, 512 * 4 * 4))
+            ('fc1', TransposedLinear(VGG13.model2.fc1, 1028, 512 * 4 * 4)),
+            ('dropout', nn.Dropout(0.2)),
         ]))
     def forward(self, x, bn_stats=None):
         x = self.model2(x)
@@ -426,7 +427,7 @@ class TransposedAlexNet(nn.Module):
             ('conv3', TransposedConv(AlexNet.model1.conv3)),
             ('bn2',TransposedBatchNorm(AlexNet.model1.bn2,192)),
             ('relu2', nn.ReLU()),
-
+            ('dropout', nn.Dropout(0.2)),
             ('conv2', TransposedConv(AlexNet.model1.conv2,2,1,1)),
             ('bn1', TransposedBatchNorm(AlexNet.model1.bn1, num_features=64)),
             ('relu1', nn.ReLU()),
@@ -436,9 +437,11 @@ class TransposedAlexNet(nn.Module):
         self.model2 = nn.Sequential(OrderedDict([
             ('fc3', TransposedLinear(AlexNet.model2.fc3, AlexNet.num_classes, 128)),
             ('relu3', nn.ReLU()),
+
             ('fc2', TransposedLinear(AlexNet.model2.fc2, 128, 512)),  # 2304 * 2
             ('relu2', nn.ReLU()),
             ('fc1', TransposedLinear(AlexNet.model2.fc1, 512, 256 * 4 * 4)),
+            ('dropout', nn.Dropout(0.2)),
         ]))
     def forward(self, x, bn_stats=None):
         x = self.model2(x)
@@ -577,6 +580,8 @@ class TransposedResNet18(nn.Module):
                 ('relu1', nn.ReLU(inplace=True)),
                 ('conv1', TransposedConv(ResNet18.layer4[0].block[0],2,1,1)),
                 ('relu0', nn.ReLU(inplace=True)),
+
+
             ]))
         )
 
@@ -587,7 +592,7 @@ class TransposedResNet18(nn.Module):
             ('fc2', TransposedLinear(ResNet18.final.fc2, 512, 1024)),  # 2304 * 2
             ('relu2', nn.ReLU()),
             ('fc1', TransposedLinear(ResNet18.final.fc1, 1024, 512 * 4 * 4)),
-
+            ('dropout', nn.Dropout(0.5)),
         ]))
 
     def make_layer(self, layers, in_channels, stride=1, padding=1, outpadding=0):
@@ -606,7 +611,9 @@ class TransposedResNet18(nn.Module):
                 ('conv2', TransposedConv(layers[0].block[3])),
                 ('bn1', TransposedBatchNorm(layers[0].block[1], in_channels)),
                 ('relu1', nn.ReLU(inplace=True)),
+                ('dropout', nn.Dropout(0.5)),
                 ('conv1', TransposedConv(layers[0].block[0], stride, padding, outpadding)),
+
             ]))
         )
         return layer
