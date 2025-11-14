@@ -12,7 +12,6 @@ import sys
 import lpips
 
 def topk_pruning(model, k_percent):
-    
     param_abs = []
     param_names = []
     for name, param in model.named_parameters():
@@ -24,7 +23,7 @@ def topk_pruning(model, k_percent):
 
     pruned_state_dict = OrderedDict()
     for name, param in model.state_dict().items():
-        pruned_state_dict[name] = param.clone().detach()  
+        pruned_state_dict[name] = param.clone().detach() 
     if k_percent == 0:
         return pruned_state_dict
 
@@ -46,7 +45,7 @@ wmDataset = WMDataset(image_dir='../data/logo10/', dim = args.num_classes, trans
             transforms.Resize((32, 32)),
             transforms.ToTensor(),
             ]))
-save_file = "test" 
+save_file = "test"
 init_model = MobileNetV2()
 init_state = torch.load('../result/'+ save_file +'.pth', weights_only=False)
 init_model.load_state_dict(init_state)

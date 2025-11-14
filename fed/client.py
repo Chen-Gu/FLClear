@@ -6,16 +6,15 @@ from utils.models import *
 
 def compute_loss_wm(rebuild_wms, vectors, key, wm, device, ssim_threshold=0.95, m=0.1,
                  data_range=1, y=0.5):
-
     rebuild_wms = rebuild_wms.to(device)
     vectors = vectors.to(device)
     key = key.to(device)
     wm = wm.to(device)
 
-    sims = torch.cosine_similarity(vectors, key, dim=1)  
-    p_sim_mask = sims >= ssim_threshold  
-    n_sim_mask = ~p_sim_mask  
-   
+    sims = torch.cosine_similarity(vectors, key, dim=1)
+    p_sim_mask = sims >= ssim_threshold
+    n_sim_mask = ~p_sim_mask
+
     ssim_p = torch.zeros_like(sims, device=device)
     ssim_n = torch.zeros_like(sims, device=device)
     l1_p = torch.zeros_like(sims, device=device)
@@ -52,13 +51,13 @@ class Client:
         self.model = None
         self.T_model = None
         self.dataset = None
-        
+
     def set_model(self, args):
         self.model = get_model(args).to(args.device)
 
     def set_dataset(self, dataset):
         self.dataset = dataset
-        
+
     def set_T_model(self, model):
         pass
 
@@ -95,10 +94,10 @@ class OrdinaryClient(Client):
             self.VecDataset = VectorAugment(wm_dataset, wm_idx, self.dim, self.args.num)
             self.key_vec = self.VecDataset.key_vec
             self.wm = self.VecDataset.wm
-            self.seed = self.VecDataset.seed  
+            self.seed = self.VecDataset.seed
             self.wm = self.wm.unsqueeze(0).to(dtype=torch.float32).to(self.device)
             self.key_vec = self.key_vec.unsqueeze(0).to(dtype=torch.float32).to(self.device)
-            
+
         if self.agg == 'scaffold':
             self.local_c = None
             self.is_set_local_c = False
@@ -114,7 +113,7 @@ class OrdinaryClient(Client):
 
         epoch_loss = []
         optimizer = get_optim(self.model, self.optim, self.local_lr, self.momentum, self.decay)
-        
+
         if not self.args.watermark:
 
             self.model.to(self.device)
@@ -140,7 +139,6 @@ class OrdinaryClient(Client):
                     if self.agg == 'scaffold' and global_c is not None and self.local_c is not None:
                         with torch.no_grad():
                             for p, gc, lc in zip(self.model.parameters(), global_c, self.local_c):
-                               
                                 p.grad.data -= lc - gc
 
                     optimizer.step()
@@ -153,13 +151,12 @@ class OrdinaryClient(Client):
             print(f"client: {self.order}, num_data: {len(self.local_dataset)}, test accuracy: {test_acc:.2f}%, average loss: {test_ave_loss:.2f}")
 
         else :
-            
             Vec_Loader = DataLoader(self.VecDataset, batch_size=self.wm_bs, shuffle=True)
             iter_vec = iter(Vec_Loader)
 
             self.model.to(self.device)
             self.T_model.to(self.device)
-            
+
             for epoch in range(self.local_ep):
 
                 self.T_model.train()
@@ -172,7 +169,7 @@ class OrdinaryClient(Client):
                     outputs_m = self.model(images)
 
                     loss_m = self.CrossEntropy(outputs_m, labels)
-               
+
                     try:
                         vectors = next(iter_vec)
                         vectors = vectors.to(self.device)
@@ -194,10 +191,9 @@ class OrdinaryClient(Client):
                                 data_range=1,
                                 y = self.args.y
                                 )
-
                     lambda_wm = self.args.la
                     loss = loss_m + lambda_wm * loss_wm
-                
+
                     if self.agg == 'FedProx' :
                         prox_loss = FedProximal(self.model, global_model, mu=0.01)
                         loss = loss + prox_loss
@@ -216,7 +212,7 @@ class OrdinaryClient(Client):
                     optimizer.step()
 
                 epoch_loss.append(np.mean(batch_loss))
-              
+
             for name, module in self.T_model.named_modules():
                 if isinstance(module, TransposedBatchNorm):
                     self.bn_stats[name] = {

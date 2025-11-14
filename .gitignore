@@ -1,3 +1,4 @@
 conmand.sh
 /experiment
 *.xlsx
+.DS_Store

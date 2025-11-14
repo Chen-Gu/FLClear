@@ -9,7 +9,6 @@ from utils.models import *
 from utils.parameters import load_args
 from utils.utils import *
 
-
 def quantize_tensor(tensor, num_bits=8):
     qmin = 0.
     qmax = 2.**num_bits - 1.
@@ -27,14 +26,13 @@ def apply_weight_quantization_attack(model, bit_num):
                 if module.bias is not None:
                     module.bias.copy_(quantize_tensor(module.bias, bit_num))
 
-
 if __name__ == "__main__":
     args = load_args()
     wmDataset = WMDataset(image_dir='../data/logo10/', dim=args.num_classes, transform=transforms.Compose([
         transforms.Resize((32, 32)),
         transforms.ToTensor(),
     ]))
-    save_file = 'test' 
+    save_file = 'test'
     init_state = torch.load('../result/'+ save_file +'.pth', weights_only=False)
     model = ResNet18()
     model.load_state_dict(init_state)
@@ -63,4 +61,3 @@ if __name__ == "__main__":
         plt.savefig(f'./result//{save_file}_quan{bit}.png')
 
         print(f"bit :{bit} test accuracy: {test_acc:.2f}%, average loss: {test_ave_loss:.2f},SSIM:{avg_ssim:.2f}")
- 

@@ -29,7 +29,7 @@ def main(args):
                 transforms.Resize((args.image_size, args.image_size)),
                 transforms.ToTensor(),
                 ]))
-  
+
     global_model = get_model(args).to(args.device)
     if args.watermark:
         global_T_model = create_T_model(global_model, args.model).to(args.device)
@@ -57,7 +57,7 @@ def main(args):
         global_c = [torch.zeros_like(p.data) for p in global_model.parameters()]
     if args.aggregation == 'FedAdam':
         server_state = {}
-    save_file = args.save_file 
+    save_file = args.save_file
     with open(args.save_dir + save_file + '.txt', 'w') as file:
         for epoch in tqdm(range(args.start_epochs, args.epochs)):
             print("\n")
@@ -72,7 +72,6 @@ def main(args):
                 client.local_lr -= client.local_lr * args.lr_decay
             clients_idxs = np.random.choice(range(args.num_clients), num_clients_each_iter, replace=False)
 
-    
             for num, idx in enumerate(clients_idxs):
                 current_client = clients[idx]
                 orders.append(current_client.order)
@@ -109,13 +108,12 @@ def main(args):
 
             global_model.load_state_dict(avg_update)
 
-           
+
             for client in clients:
                 client.model.load_state_dict(global_model.state_dict())
 
-           
             test_acc, test_ave_loss = evaluate(global_model, args)
-                     
+
             if args.watermark:
                 key_vecs = []
                 wms = []
@@ -129,7 +127,7 @@ def main(args):
                         key_vecs.append(client.key_vec)
                         wms.append(client.wm)
                         if client.bn_stats != {}:
-                         
+
                             build_wm = global_T_model(client.key_vec, client.bn_stats)
                             ssim_v = ssim(build_wm, client.wm)
                             mse = F.mse_loss(build_wm, client.wm)
@@ -139,16 +137,16 @@ def main(args):
 
                     avg_ssim = np.mean(ssims)
                     avg_mse = np.mean(mse_v)
-                                 
+
                     print(f"agg epoch:{epoch}, test_accuracy: {test_acc:.2f}%, avg_ssim:{avg_ssim:.2f}, test_loss: {test_ave_loss:.2f}, avg_mse:{avg_mse:.2f}")
                     log_entry = f"Epoch {epoch}, avg_ssim:{avg_ssim:.2f}, test_accuracy: {test_acc:.2f}%, test_loss: {test_ave_loss:.2f}, avg_mse:{avg_mse:.2f}\n"
                     file.write(log_entry)
-             
+
                     if epoch == args.epochs - 1 :
                         if args.save :
                             torch.save(avg_update, args.save_model_dir + save_file + ".pth")
                             save_bn_stats_hdf5(clients, save_path=args.save_bn_dir + save_file + ".h5")
-                            print(f"{args.model} has been saved! acc:{best_acc:.2f}, ssim: {best_ssim:.2f}")                     
+                            print(f"{args.model} has been saved! acc:{best_acc:.2f}, ssim: {best_ssim:.2f}")
             else:
 
                 print(f"agg epoch:{epoch}, test accuracy: {test_acc:.2f}%, average loss: {test_ave_loss:.2f}")

@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from torchvision import datasets
 from torchvision import transforms
 
-
 def get_optim(model, optim, lr=0.001, momentum=0.9, decay = 0.0001):
 
     if optim == 'sgd':
@@ -22,7 +21,7 @@ def get_optim(model, optim, lr=0.001, momentum=0.9, decay = 0.0001):
         return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=decay)
     else:
         exit("Unknown Optimizer!")
-        
+
 def get_full_dataset(dataset_name, train=True, img_size=(32, 32), is_download=False):
     if train == True:
         if dataset_name == 'mnist':
@@ -33,7 +32,7 @@ def get_full_dataset(dataset_name, train=True, img_size=(32, 32), is_download=Fa
                                       transforms.Lambda(lambda x: x.repeat(3, 1, 1)),  
                                   ]))
         elif dataset_name == 'fashionmnist':
-           
+
             dataset = datasets.FashionMNIST('./data/fashionmnist/', train=True, download=is_download,
                                             transform=transforms.Compose([
                                                 transforms.ToTensor(),
@@ -72,7 +71,7 @@ def get_full_dataset(dataset_name, train=True, img_size=(32, 32), is_download=Fa
                                               transforms.Lambda(lambda x: x.repeat(3, 1, 1)), 
                                           ]))
         elif dataset_name == 'fashionmnist':
-           
+
             dataset = datasets.FashionMNIST('./data/fashionmnist/', train=False, download=is_download,
                                             transform=transforms.Compose([
                                                 transforms.ToTensor(),
@@ -99,7 +98,7 @@ def get_full_dataset(dataset_name, train=True, img_size=(32, 32), is_download=Fa
     return dataset
 
 def iid_split(dataset, num_clients):
-    
+
     dataset_len = len(dataset)
     num_items = dataset_len // num_clients
     dict_clients = dict()
@@ -110,7 +109,7 @@ def iid_split(dataset, num_clients):
     return dict_clients
 
 def dniid_split(dataset, num_clients, param=0.8):
-    
+
     dataset_len = len(dataset)
     dataset_y = np.array(dataset.targets)
     labels = set(dataset_y)
@@ -125,7 +124,7 @@ def dniid_split(dataset, num_clients, param=0.8):
     for label in labels:
         sorted_idxs[label] = np.array(sorted_idxs[label])
 
-   
+
     dict_clients = dict()
     for i in range(num_clients):
         dict_clients[i] = None
@@ -175,7 +174,7 @@ def get_model(args):
 def evaluate(model, args):
     test_dataset = get_full_dataset(args.dataset, train=False, img_size=(args.image_size, args.image_size))
     test_Loader = DataLoader(test_dataset, batch_size=args.test_bs, shuffle=False)
-    model.eval()  
+    model.eval()
     model.to(args.device)
     correct = 0
     total = 0
@@ -185,15 +184,15 @@ def evaluate(model, args):
         for images, labels in test_Loader:
             images, labels = images.to(args.device), labels.to(args.device)
             outputs = model(images)
-            loss = criterion(outputs, labels)  
-            _, predicted = outputs.max(1)  
+            loss = criterion(outputs, labels)
+            _, predicted = outputs.max(1)
             total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()  
+            correct += predicted.eq(labels).sum().item()
             test_loss.append(loss.item())
-    accuracy = 100. * correct / total  
-    average_loss = np.mean(test_loss)  
+    accuracy = 100. * correct / total
+    average_loss = np.mean(test_loss)
     return accuracy, average_loss
-    
+
 def wm_extract(T_model, wm_dataset, args, bn_path = './result/forgery/bn/test.h5') :
     wm_loader = DataLoader(wm_dataset, batch_size=1, shuffle=False)
     T_model.eval().to(args.device)
@@ -262,9 +261,9 @@ def imshow(img):
     img = np.transpose(img, (1, 2, 0))
     plt.imshow(img)
     plt.axis('off')
-    
+
 def generate_hash_code(seed="A", dim=10):
-    bytes_per_dim = 8  
+    bytes_per_dim = 8
     total_bytes = dim * bytes_per_dim
 
     shake = hashlib.shake_128()
@@ -278,9 +277,8 @@ def generate_hash_code(seed="A", dim=10):
         segment = hash_bytes[start:end]
         int_val = int.from_bytes(segment, byteorder='big')
         max_int = 2 ** (8 * bytes_per_dim) - 1
-        code[i] = 2 * (int_val / max_int) - 1 
+        code[i] = 2 * (int_val / max_int) - 1
     return code
-    
 
 def save_bn_stats_hdf5(clients, save_path="./bn_stats.h5"):
     with h5py.File(save_path, 'w') as f:
@@ -291,7 +289,7 @@ def save_bn_stats_hdf5(clients, save_path="./bn_stats.h5"):
                 layer_group.create_dataset('running_mean', data=stats['running_mean'].clone().cpu().numpy())
                 layer_group.create_dataset('running_var', data=stats['running_var'].clone().cpu().numpy())
     print(f"All BN stats saved to {save_path}")
-    
+
 def load_bn_stats_hdf5(client_label, device, save_path="./bn_stats.h5"):
     bn_stats = {}
     with h5py.File(save_path, 'r') as f:

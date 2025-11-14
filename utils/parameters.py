@@ -2,7 +2,6 @@
 import argparse
 import distutils.util
 
-
 def load_args():
     parser = argparse.ArgumentParser()
     # global settings
@@ -46,7 +45,7 @@ def load_args():
     # # watermark arguments
     parser.add_argument("--watermark", type=lambda x: bool(distutils.util.strtobool(x)), default=True, help="whether embedding the watermark")
     parser.add_argument('--wm_bs', type=int, default=32, help="watermark images batch size")
-    
+
     args = parser.parse_args()
     args.num_clients_each_iter = int(args.num_clients * args.clients_percent)
     return args

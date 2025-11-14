@@ -13,7 +13,7 @@ wmDataset = WMDataset(image_dir='../data/logo10/', dim = args.num_classes, trans
                 transforms.ToTensor(),
                 ]))
 
-save_file = 'test' 
+save_file = 'test'
 init_state = torch.load('../result/forgery/model/'+ save_file +'.pth', weights_only=False)
 model = MobileNetV2().to(args.device)
 model.load_state_dict(init_state)

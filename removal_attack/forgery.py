@@ -93,7 +93,6 @@ for test_num in range(num_suc):
             if ssim_v > 0.1:
                 num_a_1 += 1
 
-
 rate_o_1 = num_o_1 / num_suc
 rate_o_3 = num_o_3 / num_suc
 rate_o_5 = num_o_5 / num_suc

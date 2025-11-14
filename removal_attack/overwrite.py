@@ -8,7 +8,6 @@ from utils.parameters import load_args
 from utils.utils import *
 from utils.datasets import WMDataset, WMDatasetSplitAndExpend
 
-
 def WMextract(T_model, wmDataloader, args, epoch, bn_path = '../result/bn/VGG13bn_stats.h5') :
     T_model.eval()
     vectors = []
@@ -62,7 +61,7 @@ WMDataset = WMDataset(image_dir='../data/attacker/', transform=transforms.Compos
     ]))
 wmDataloader = DataLoader(WMDataset, batch_size=1, shuffle=False)
 
-save_file = 'test' 
+save_file = 'test'
 init_state = torch.load('../result/'+ save_file +'.pth', weights_only=False)
 model = ResNet18()
 model.load_state_dict(init_state)
@@ -94,12 +93,11 @@ for epoch in range(epochs):
 
     test_acc, test_ave_loss = evaluate(model, args)
     build_wms, avg_ssim = wm_extract(T_model, wmDataset, args, bn_path='../result/'+ save_file +'.h5')
-    
+
     T_model.eval()
     re_wm = T_model(key)
     ssim_a = ssim(re_wm, wm)
     print(f"epoch:{epoch+1}, test accuracy: {test_acc:.2f}%, average loss: {test_ave_loss:.2f}, SSIM:{avg_ssim:.2f}, attacker ssim:{ssim_a:.2f} ")
-  
 
 
 
