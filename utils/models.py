@@ -5,185 +5,44 @@ from torch import nn
 import torch.nn.functional as F
 from collections import OrderedDict
 
-'''class TransposedLinear(nn.Module):
-    def __init__(self, original_linear: nn.Linear, in_features: int, out_features: int):
-        """
-        构造转置线性层，与原始线性层共享权重。
-        Args:
-            original_linear (nn.Linear): 原始线性层。
-        """
-        super(TransposedLinear, self).__init__()
-        # 引用原始层的权重和偏置
-        self.weight = original_linear.weight  # 权重共享
-        self.share_bias = original_linear.bias      # 偏置共享
-        self.bias = nn.Parameter(torch.zeros(out_features))
 
-    def forward(self, y):
-        """
-        计算转置线性层的输出，使用 x = (y - b) * w 的公式。
-        Args:
-            y: 输入到转置线性层的特征向量。
-        Returns:
-            x: 转置线性层的输出。
-        """
-        if self.share_bias is not None:
-            # 减去偏置
-            y = y - self.share_bias
-        # 矩阵乘法，使用共享的转置权重
-        x = F.linear(y, self.weight.t())
-        return x'''
-class TransposedPooling(nn.Module):
-    def __init__(self, mode='bilinear', scale_factor=2):
-        super(TransposedPooling, self).__init__()
-        self.mode = mode
-        self.scale_factor = scale_factor
-
-    def forward(self, x):
-        upsampled = F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode, align_corners=False)
-        return upsampled
-# class TransposedBatchNorm(nn.Module):
-#     def __init__(self, BatchNorm: nn.BatchNorm2d, num_features):
-#         super(TransposedBatchNorm, self).__init__()
-#         self.num_features = num_features
-#         self.weight = BatchNorm.weight
-#         self.bias = BatchNorm.bias
-#         self.eps = BatchNorm.eps
-#
-#     def forward(self, y):
-#         mean = y.mean(dim=(0, 2, 3), keepdim=True)
-#         var = y.var(dim=(0, 2, 3), keepdim=True, unbiased=True)
-#         mean = mean.view(1, self.num_features, 1, 1)
-#         var = var.view(1, self.num_features, 1, 1)
-#         x_normalized = (y - mean) / torch.sqrt(var + self.eps)
-#         x = self.weight.view(1, self.num_features, 1, 1) * x_normalized + self.bias.view(1, self.num_features, 1, 1)
-#         return x
-
-
-# class TransposedBatchNorm(nn.Module):
-#     def __init__(self, BatchNorm: nn.BatchNorm2d, num_features):
-#         super(TransposedBatchNorm, self).__init__()
-#         self.batch_norm = BatchNorm  # Store the BatchNorm module itself
-#         self.register_parameter('weight', BatchNorm.weight)
-#         self.register_parameter('bias', BatchNorm.bias)
-#         self.num_features = num_features
-#         self.eps = BatchNorm.eps
-#         self.momentum = BatchNorm.momentum
-#
-#     def forward(self, y, mean=None, var=None):
-#         if self.training:
-#             mean = y.mean(dim=(0, 2, 3), keepdim=True)
-#             var = y.var(dim=(0, 2, 3), keepdim=True, unbiased=True)
-#             with torch.no_grad():
-#                 # 使用 copy_ 替代原地操作
-#                 self.batch_norm.running_mean.copy_(
-#                     (1 - self.momentum) * self.batch_norm.running_mean + self.momentum * mean.squeeze()
-#                 )
-#                 self.batch_norm.running_var.copy_(
-#                     (1 - self.momentum) * self.batch_norm.running_var + self.momentum * var.squeeze()
-#                 )
-#         else:
-#             if mean is None and var is None:
-#                 mean = self.batch_norm.running_mean.view(1, self.num_features, 1, 1)
-#                 var = self.batch_norm.running_var.view(1, self.num_features, 1, 1)
-#             else:
-#                 mean = mean.view(1, self.num_features, 1, 1)
-#                 var = var.view(1, self.num_features, 1, 1)
-#
-#         x_normalized = (y - mean) / torch.sqrt(var + self.eps)
-#         x = self.batch_norm.weight.view(1, self.num_features, 1, 1) * x_normalized + \
-#             self.batch_norm.bias.view(1, self.num_features, 1, 1)
-#         return x
-
-# class CNN(nn.Module):
-#     def __init__(self, args):
-#         super(CNN, self).__init__()
-#         self.conv1 = nn.Conv2d(args.num_channels, 32, kernel_size=3, stride=1, padding=1)
-#         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-#         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-#         self.fc1 = nn.Linear(64 * 8 * 8, 512)
-#         self.fc2 = nn.Linear(512, 256)
-#         self.fc3 = nn.Linear(256, args.num_classes)
-#
-#     def forward(self, x):     #(64, 3, 32, 32)
-#         x = self.pool(F.relu(self.conv1(x)))    #(64, 64, 16, 16)
-#         x = self.pool(F.relu(self.conv2(x)))    #(64, 128, 8, 8)
-#         x = x.view(-1, 64 * 8 * 8)    #(64, 64*8*8)
-#         x = F.relu(self.fc1(x))    #(64, 512)
-#         x = F.relu(self.fc2(x))    #(64, 256)
-#         x = self.fc3(x)    #(64, 10)
-#         return x
-# class TransposedCNN(nn.Module):
-#     def __init__(self, CNN):
-#         super(TransposedCNN, self).__init__()
-#
-#         self.fc3_t = TransposedLinear(CNN.fc3, 10, 256)
-#         self.fc2_t = TransposedLinear(CNN.fc2,256, 512)
-#         self.fc1_t = TransposedLinear(CNN.fc1,512, 64*8*8)
-#         self.pool_t = TransposedPooling(CNN.pool, mode='bilinear', scale_factor=2)
-#         self.conv2_t = TransposedConv(CNN.conv2)
-#         self.conv1_t = TransposedConv(CNN.conv1)
-#
-#
-#     def forward(self, x):    #(10, 10)
-#         x = F.relu(self.fc3_t(x))    #(10, 256)
-#         x = F.relu(self.fc2_t(x))    #(10, 512)
-#         x = F.relu(self.fc1_t(x))    #(10, 64*8*8)
-#         x = x.view(-1, 64, 8, 8)   #(10, 64, 8, 8)
-#         x = self.pool_t(x)   #(10, 64, 16, 16)
-#         x = F.relu(x)
-#         x = self.conv2_t(x)   #(10, 32, 16, 16)
-#         x = self.pool_t(x) #(10, 32, 32, 32)
-#         x = F.relu(x)
-#         x = self.conv1_t(x)     #(10, 3, 32, 32)
-#         return x
-
-# class TextEncoder(nn.Module):
-#     def __init__(self, clip_model, output_dim=10):  #output_dim文本特征输出维度
-#         super(TextEncoder, self).__init__()
-#         self.clip = clip_model
-#         self.fc = nn.Linear(512, output_dim)  # 将CLIP输出映射到目标维度,CLIP ViT-B/32 模型的文本特征输出维度是 512
-#
-#     def forward(self, text):
-#         inputs = clip_processor(text=text, return_tensors="pt", padding=True)
-#         with torch.no_grad():
-#             text_features = self.clip.get_text_features(**inputs)
-#         return self.fc(text_features)
 class TransposedLinear(nn.Module):
     def __init__(self, original_linear: nn.Linear, in_features: int, out_features: int):
         super(TransposedLinear, self).__init__()
-        # 引用原始层的权重和偏置
-        self.weight = original_linear.weight  # 权重共享
-        self.bias = original_linear.bias      # 偏置共享
+      
+        self.weight = original_linear.weight  
+        self.bias = original_linear.bias      
 
     def forward(self, y):
         if self.bias is not None:
             y = y - self.bias
         x = F.linear(y, self.weight.t())
         return x
+        
 class TransposedConv(nn.Module):
     def __init__(self, conv_layer, stride=1, padding=1, outpadding=0):
         super().__init__()
         self.conv_layer = conv_layer
-        # 保存转置卷积的超参数
+       
         self.stride = stride
         self.padding = padding
         self.output_padding = outpadding
-        # 直接引用 conv_layer 的权重（不创建新的 nn.Parameter）
-        self.weight = conv_layer.weight  # 形状: [out_channels, in_channels, k, k]
+        self.groups = conv_layer.groups
+       
+        self.weight = conv_layer.weight  
 
     def forward(self, x):
-        # 使用 F.conv_transpose2d，手动应用转置卷积
-        # 输入 x: [batch, out_channels, h_in, w_in]
-        # weight: [out_channels, in_channels, k, k]
-        # 输出: [batch, in_channels, h_out, w_out]
+        
         return F.conv_transpose2d(
             x,
             self.weight,
             bias=None,
             stride=self.stride,
             padding=self.padding,
-            output_padding=self.output_padding
+            output_padding=self.output_padding,
+            groups=self.groups,
         )
+        
 class TransposedBatchNorm(nn.Module):
     def __init__(self, BatchNorm: nn.BatchNorm2d, num_features):
         super(TransposedBatchNorm, self).__init__()
@@ -212,6 +71,7 @@ class TransposedBatchNorm(nn.Module):
         x_normalized = (y - mean) / torch.sqrt(var + self.eps)
         x = self.weight.view(1, self.num_features, 1, 1) * x_normalized + self.bias.view(1, self.num_features, 1, 1)
         return x
+
 class VGG13(nn.Module):
     def __init__(self, num_classes = 10):
         super().__init__()
@@ -269,25 +129,12 @@ class VGG13(nn.Module):
             ('fc3', nn.Linear(128, self.num_classes))
         ]))
 
-        self.memory = dict()
-
     def forward(self, x):
         x = self.model1(x)
         x = x.view(x.size(0), -1)
         x = self.model2(x)
         return x
 
-    def load_global_model(self, state_dict, device, watermark=False):
-        if watermark:
-            # self.memory = dict()
-            for key in state_dict:
-                old_weights = self.state_dict()[key]
-                new_weights = state_dict[key]
-                if key in self.memory:
-                    self.memory[key] = torch.add(self.memory[key], torch.sub(new_weights, old_weights).to(device))
-                else:
-                    self.memory[key] = torch.sub(new_weights, old_weights).to(device)
-        self.load_state_dict(state_dict)
 class TransposedVGG13(nn.Module):
     def __init__(self, VGG13):
         super(TransposedVGG13, self).__init__()
@@ -358,6 +205,7 @@ class TransposedVGG13(nn.Module):
 
         sigmoid = nn.Sigmoid()
         return sigmoid(x)
+        
 class AlexNet(nn.Module):
     def __init__(self, num_classes = 10):
         super(AlexNet, self).__init__()
@@ -387,13 +235,13 @@ class AlexNet(nn.Module):
         self.model2 = nn.Sequential(OrderedDict([
 
             ('fc1', nn.Linear(256 * 4 * 4, 512)),
-            ('relu3', nn.ReLU()),
+            ('relu1', nn.ReLU()),
 
             ('fc2', nn.Linear(512, 128)),
-            ('relu3', nn.ReLU()),
+            ('relu2', nn.ReLU()),
             ('fc3', nn.Linear(128, self.num_classes))
         ]))
-        self.memory = dict()
+       
 
     def forward(self, x):
         x = self.model1(x)
@@ -401,21 +249,11 @@ class AlexNet(nn.Module):
         x = self.model2(x)
         return x
 
-    def load_global_model(self, state_dict, device, watermark=False):
-        if watermark:
-            for key in state_dict:
-                old_weights = self.state_dict()[key]
-                new_weights = state_dict[key]
-                if key in self.memory:
-                    self.memory[key] = torch.add(self.memory[key], torch.sub(new_weights, old_weights).to(device))
-                else:
-                    self.memory[key] = torch.sub(new_weights, old_weights).to(device)
-        self.load_state_dict(state_dict)
 class TransposedAlexNet(nn.Module):
     def __init__(self, AlexNet):
         super(TransposedAlexNet, self).__init__()
         self.model1 = nn.Sequential(OrderedDict([
-            # ('bn5', TransposedBatchNorm(AlexNet.model1.bn5, 256)),
+            
             ('conv5', TransposedConv(AlexNet.model1.conv5,2,1,1)),
             ('bn4', TransposedBatchNorm(AlexNet.model1.bn4, 384)),
             ('relu4', nn.ReLU()),
@@ -460,7 +298,7 @@ class TransposedAlexNet(nn.Module):
         return sigmoid(x)
 
 class BasicBlock(nn.Module):
-    # expansion = 1
+    
     def __init__(self, in_channels, out_channels, stride=1, downsample=None):
         super(BasicBlock, self).__init__()
         self.block = nn.Sequential(OrderedDict([
@@ -481,6 +319,7 @@ class BasicBlock(nn.Module):
         out += identity
         out = self.relu(out)
         return out
+        
 # ResNet-18 Model
 class ResNet18(nn.Module):
     def __init__(self, num_classes=100):
@@ -500,21 +339,20 @@ class ResNet18(nn.Module):
         self.layer3 = self._make_layer(256, 2, stride=2)
         self.layer4 = self._make_layer(512, 2, stride=2)
 
-        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         self.final = nn.Sequential(OrderedDict([
-            # ('drop', nn.Dropout(p=0.5)),
             ('fc1', nn.Linear(512 * 4 * 4, 1024)),
             ('relu1', nn.ReLU()),
             ('fc2', nn.Linear(1024, 512)),
             ('relu2', nn.ReLU()),
             ('fc3', nn.Linear(512, self.num_classes))
         ]))
-        self.memory = dict()
+      
+      
     def _make_layer(self, out_channels, blocks, stride):
         downsample = None
         if stride != 1 or self.in_channels != out_channels :
-            downsample = nn.Sequential(     #对齐数据大小和通道数，方便与输出相加
+            downsample = nn.Sequential(     
                 nn.Conv2d(self.in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(out_channels),
             )
@@ -531,30 +369,18 @@ class ResNet18(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        # x = self.avgpool(x)
+       
         x = x.view(x.size(0), -1)
         x = self.final(x)
         return x
-
-    def load_global_model(self, state_dict, device, watermark=False):
-        if watermark:
-            for key in state_dict:
-                old_weights = self.state_dict()[key]
-                new_weights = state_dict[key]
-                if key in self.memory:
-                    self.memory[key] = torch.add(self.memory[key], torch.sub(new_weights, old_weights).to(device))
-                else:
-                    self.memory[key] = torch.sub(new_weights, old_weights).to(device)
-        self.load_state_dict(state_dict)
 
 class TransposedResNet18(nn.Module):
     def __init__(self, ResNet18):
         super(TransposedResNet18, self).__init__()
         self.in_channels = 64
-        # Initial convolutional layer
+       
         self.initial = nn.Sequential(OrderedDict([
-            # ('bn1', TransposedBatchNorm(ResNet18.initial.bn1, 64)),
-
+            
             ('conv1', TransposedConv(ResNet18.initial.conv1)),
             ('relu1', nn.ReLU(inplace=True)),
 
@@ -566,7 +392,7 @@ class TransposedResNet18(nn.Module):
         self.layer3 = self.make_layer(ResNet18.layer3, 256,2,1,1)
         self.layer4 = nn.Sequential(
             nn.Sequential(OrderedDict([
-                # ('pool1', TransposedPooling()),
+                
                 ('conv2', TransposedConv(ResNet18.layer4[1].block[3])),
                 ('bn1', TransposedBatchNorm(ResNet18.layer4[1].block[1], 512)),
                 ('relu1', nn.ReLU(inplace=True)),
@@ -586,13 +412,13 @@ class TransposedResNet18(nn.Module):
         )
 
         self.final = nn.Sequential(OrderedDict([
-            # ('fc', TransposedLinear(ResNet18.final.fc, ResNet18.num_classes, 512)),
+            
             ('fc3', TransposedLinear(ResNet18.final.fc3, ResNet18.num_classes, 512)),
             ('relu3', nn.ReLU()),
-            ('fc2', TransposedLinear(ResNet18.final.fc2, 512, 1024)),  # 2304 * 2
+            ('fc2', TransposedLinear(ResNet18.final.fc2, 512, 1024)),  
             ('relu2', nn.ReLU()),
             ('fc1', TransposedLinear(ResNet18.final.fc1, 1024, 512 * 4 * 4)),
-            ('dropout', nn.Dropout(0.5)),
+            
         ]))
 
     def make_layer(self, layers, in_channels, stride=1, padding=1, outpadding=0):
@@ -611,7 +437,7 @@ class TransposedResNet18(nn.Module):
                 ('conv2', TransposedConv(layers[0].block[3])),
                 ('bn1', TransposedBatchNorm(layers[0].block[1], in_channels)),
                 ('relu1', nn.ReLU(inplace=True)),
-                ('dropout', nn.Dropout(0.5)),
+                ('dropout', nn.Dropout(0.2)),
                 ('conv1', TransposedConv(layers[0].block[0], stride, padding, outpadding)),
 
             ]))
@@ -639,7 +465,7 @@ class TransposedResNet18(nn.Module):
             for layer_name, layer in layers:
                 for name, module in layer._modules.items():
                     if isinstance(module, nn.Sequential):
-                        # 处理嵌套的 nn.Sequential
+                       
                         for sub_name, sub_module in module._modules.items():
                             full_name = f"{layer_name}.{name}.{sub_name}"
                             if isinstance(sub_module, TransposedBatchNorm) and full_name in bn_stats:
@@ -648,12 +474,316 @@ class TransposedResNet18(nn.Module):
                             else:
                                 x = sub_module(x)
                     else:
-                        # 处理非 Sequential 模块
+                       
                         full_name = f"{layer_name}.{name}"
                         if isinstance(module, TransposedBatchNorm) and full_name in bn_stats:
                             x = module(x, mean=bn_stats[full_name]['running_mean'].to(x.device),
                                        var=bn_stats[full_name]['running_mean'].to(x.device))
                         else:
                             x = module(x)
+        sigmoid = nn.Sigmoid()
+        return sigmoid(x)
+
+
+class ConvBNReLU(nn.Sequential):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, activation=nn.ReLU):
+        padding = (kernel_size - 1) // 2
+        super(ConvBNReLU, self).__init__(
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
+            nn.BatchNorm2d(out_planes),
+            activation(inplace=True) if activation is not None else nn.Identity()
+        )
+
+
+class InvertedResidual(nn.Module):
+    def __init__(self, inp, oup, stride, expand_ratio):
+        super(InvertedResidual, self).__init__()
+        self.stride = stride
+        hidden_dim = int(round(inp * expand_ratio))
+        self.use_res_connect = self.stride == 1 and inp == oup
+
+        layers = []
+        if expand_ratio != 1:
+            
+            layers.append(ConvBNReLU(inp, hidden_dim, kernel_size=1, activation=nn.ReLU))
+
+        
+        layers.append(
+            ConvBNReLU(hidden_dim, hidden_dim, kernel_size=3, stride=stride, groups=hidden_dim, activation=nn.ReLU))
+
+        
+        layers.append(ConvBNReLU(hidden_dim, oup, kernel_size=1, activation=None))
+
+        self.conv = nn.Sequential(*layers)
+
+    def forward(self, x):
+        if self.use_res_connect:
+            return x + self.conv(x)
+        else:
+            return self.conv(x)
+
+
+class MobileNetV2(nn.Module):
+    def __init__(self, num_classes=10, width_mult=1.0, round_nearest=8):
+        
+        super(MobileNetV2, self).__init__()
+
+        
+        def _make_divisible(v, divisor=round_nearest):
+            new_v = max(divisor, int(v + divisor / 2) // divisor * divisor)
+            if new_v < 0.9 * v:
+                new_v += divisor
+            return new_v
+
+        block = InvertedResidual
+        input_channel = 32
+        self.last_channel = 320
+        self.final_spatial_size = 4
+
+        inverted_residual_setting = [
+            # t, c, n, s
+            [1, 16, 1, 1],
+            [6, 24, 2, 2],
+            [6, 32, 3, 1],
+            [6, 64, 4, 2],
+            [6, 96, 3, 1],
+            [6, 160, 3, 2],
+            [6, 320, 1, 1],
+        ]
+
+        
+        input_channel = _make_divisible(input_channel * width_mult)
+
+        features = [ConvBNReLU(3, input_channel, kernel_size=3, stride=1, activation=nn.ReLU)]
+
+    
+        for t, c, n, s in inverted_residual_setting:
+            output_channel = _make_divisible(c * width_mult)
+            for i in range(n):
+                stride = s if i == 0 else 1
+                features.append(block(input_channel, output_channel, stride, expand_ratio=t))
+                input_channel = output_channel
+
+ 
+        self.features = nn.Sequential(*features)
+
+        
+        self.classifier = nn.Sequential(
+            
+            nn.Linear(self.last_channel*self.final_spatial_size*self.final_spatial_size, 512),
+            nn.ReLU(),
+            nn.Linear(512, num_classes),
+        )
+
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+
+class TransposedInvertedResidual(nn.Module):
+    def __init__(self, original_block: InvertedResidual):
+        super(TransposedInvertedResidual, self).__init__()
+
+      
+        layers_f = original_block.conv
+
+        
+        self.inp = layers_f[-1][0].in_channels if len(layers_f) == 2 else layers_f[0][0].in_channels
+        self.oup = layers_f[-1][0].out_channels
+
+       
+        if len(layers_f) == 3:
+       
+            idx_exp, idx_dw, idx_proj = 0, 1, 2
+        else:
+          
+            idx_dw, idx_proj = 0, 1
+            idx_exp = None
+
+       
+        proj_conv_f = layers_f[idx_proj][0]
+        proj_bn_f = layers_f[idx_proj][1]
+        self.t_proj = nn.Sequential(OrderedDict([
+           
+            ('t_bn', TransposedBatchNorm(proj_bn_f, proj_conv_f.out_channels)),
+            ('t_relu6', nn.ReLU(inplace=True)),
+            ('t_conv', TransposedConv(proj_conv_f, stride=1, padding=0, outpadding=0)),
+            
+        ]))
+
+     
+        dw_conv_f = layers_f[idx_dw][0]
+        dw_bn_f = layers_f[idx_dw][1]
+
+        
+        if dw_conv_f.stride == (2, 2) or dw_conv_f.stride == 2:
+            outpadding = 1
+        else:
+            outpadding = 0
+        self.t_dw = nn.Sequential(OrderedDict([
+            ('t_bn', TransposedBatchNorm(dw_bn_f, dw_conv_f.out_channels)),
+            ('t_relu6', nn.ReLU(inplace=True)),
+            ('t_conv', TransposedConv(dw_conv_f, stride=dw_conv_f.stride, padding=dw_conv_f.padding,
+                                      outpadding=outpadding)),
+        ]))
+
+        self.t_expansion = nn.Identity()
+        if idx_exp is not None:
+            # Conv: inp -> hidden。 T-Conv: hidden -> inp。
+            exp_conv_f = layers_f[idx_exp][0]
+            exp_bn_f = layers_f[idx_exp][1]
+            self.t_expansion = nn.Sequential(OrderedDict([
+                ('t_bn', TransposedBatchNorm(exp_bn_f, exp_conv_f.out_channels)),
+                ('t_conv', TransposedConv(exp_conv_f, stride=1, padding=0, outpadding=0)),  # 1x1 Conv always s=1, p=0
+            ]))
+
+        self.use_res_connect = original_block.use_res_connect
+
+    def forward(self, x):
+      
+        self.identity = x
+
+        x = self.t_proj(x)
+
+        x = self.t_dw(x)
+
+        x = self.t_expansion(x)
+
+        return x
+
+
+def _run_recursive_forward(module, x, bn_stats, prefix=''):
+    
+    if isinstance(module, (nn.Sequential, nn.ModuleList, OrderedDict)):
+        for name, sub_module in module.named_children():
+            x = _run_recursive_forward(sub_module, x, bn_stats, prefix + name + '.')
+        return x
+
+    elif isinstance(module, TransposedBatchNorm) and bn_stats is not None:
+      
+        full_name = prefix.rstrip('.')
+
+        if full_name in bn_stats:
+            mean = bn_stats[full_name]['running_mean'].to(x.device)
+            var = bn_stats[full_name]['running_var'].to(x.device)
+           
+            return module(x, mean=mean, var=var)
+
+    elif isinstance(module, TransposedInvertedResidual):
+        
+        x = _run_recursive_forward(module.t_proj, x, bn_stats, prefix + 't_proj.')
+       
+        x = _run_recursive_forward(module.t_dw, x, bn_stats, prefix + 't_dw.')
+    
+        x = _run_recursive_forward(module.t_expansion, x, bn_stats, prefix + 't_expansion.')
+
+        return x
+    else:
+        return module(x)
+class TransposedMobileNetV2(nn.Module):
+    def __init__(self, original_mnet: MobileNetV2, num_classes=10):
+        super().__init__()
+
+     
+        self.last_channel = original_mnet.last_channel
+        self.final_spatial_size = 4  
+
+     
+        # Classifier: Dropout -> Linear(last_channel -> num_classes)
+        self.t_head = nn.Sequential(OrderedDict([
+            
+            ('t_linear2', TransposedLinear(original_mnet.classifier[2], num_classes, 512)),
+            ('t_relu', nn.ReLU(inplace=True)),  
+            ('t_linear1', TransposedLinear(original_mnet.classifier[0], 512,
+                                          self.last_channel * self.final_spatial_size * self.final_spatial_size)),
+        ]))
+
+        
+        t_features = []
+
+        for i in reversed(range(1, len(original_mnet.features))):
+            original_block = original_mnet.features[i]
+            t_features.append(TransposedInvertedResidual(original_block))
+
+        self.t_features = nn.Sequential(*t_features)
+
+       
+        f_initial_conv_bn_relu = original_mnet.features[0]
+        f_initial_conv = f_initial_conv_bn_relu[0]
+        f_initial_bn = f_initial_conv_bn_relu[1]
+
+        self.t_initial = nn.Sequential(OrderedDict([
+            ('t_bn', TransposedBatchNorm(f_initial_bn, f_initial_conv.out_channels)),
+            ('t_relu', nn.ReLU6(inplace=True)),
+            ('t_conv', TransposedConv(f_initial_conv, stride=1, padding=1, outpadding=0)),
+        ]))
+
+    def forward(self, x, bn_stats=None):
+       
+        x = self.t_head(x)
+        x = x.view(-1, self.last_channel, self.final_spatial_size, self.final_spatial_size)
+    
+        if bn_stats is None:
+
+            x = self.t_features(x)
+            x = self.t_initial(x)
+      
+        else:
+            x = _run_recursive_forward(self.t_features, x, bn_stats, prefix='t_features.')
+            x = _run_recursive_forward(self.t_initial, x, bn_stats, prefix='t_initial.')
+
+       
+        return nn.Sigmoid()(x)
+
+
+
+    def __init__(self, AlexNet1):
+        super(TransposedAlexNet1, self).__init__()
+        self.size = AlexNet1.size
+        self.model1 = nn.Sequential(OrderedDict([
+           
+            ('conv5', TransposedConv(AlexNet1.model1.conv5,2,1,1)),
+            ('bn4', TransposedBatchNorm(AlexNet1.model1.bn4, 384)),
+            ('relu4', nn.ReLU()),
+
+            ('conv4', TransposedConv(AlexNet1.model1.conv4)),
+            ('bn3', TransposedBatchNorm(AlexNet1.model1.bn3, 384)),
+            ('relu3', nn.ReLU()),
+
+            ('conv3', TransposedConv(AlexNet1.model1.conv3)),
+            ('bn2',TransposedBatchNorm(AlexNet1.model1.bn2,192)),
+            ('relu2', nn.ReLU()),
+            ('dropout', nn.Dropout(0.2)),
+            ('conv2', TransposedConv(AlexNet1.model1.conv2,2,1,1)),
+            ('bn1', TransposedBatchNorm(AlexNet1.model1.bn1, num_features=64)),
+            ('relu1', nn.ReLU()),
+
+            ('conv1', TransposedConv(AlexNet1.model1.conv1,2,1,1)),
+        ]))
+        self.model2 = nn.Sequential(OrderedDict([
+            ('fc3', TransposedLinear(AlexNet1.model2.fc3, AlexNet1.num_classes, 128)),
+            ('relu3', nn.ReLU()),
+
+            ('fc2', TransposedLinear(AlexNet1.model2.fc2, 128, 512)),  
+            ('relu2', nn.ReLU()),
+            ('fc1', TransposedLinear(AlexNet1.model2.fc1, 512, 256 * AlexNet1.size * AlexNet1.size)),
+            ('dropout', nn.Dropout(0.2)),
+        ]))
+    def forward(self, x, bn_stats=None):
+        x = self.model2(x)
+        x = x.view(-1, 256, self.size, self.size)
+        if not bn_stats:
+            x = self.model1(x)
+        else:
+            for name, module in self.model1._modules.items():
+                if isinstance(module, TransposedBatchNorm) and 'model1.' + name in bn_stats:
+                    tname = 'model1.' + name
+                    x = module(x, mean=bn_stats[tname]['running_mean'],
+                               var=bn_stats[tname]['running_var'])
+                else:
+                    x = module(x)
         sigmoid = nn.Sigmoid()
         return sigmoid(x)
